@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const getStartedButton = document.getElementById("get-started");
-  const uploadSection = document.getElementById("upload-section");
+  const descriptionPage = document.getElementById("description-page");
+  const mainPage = document.getElementById("main-page");
+  const pulsatingGetStartedButton = document.getElementById("pulsating-get-started");
   const fileInput = document.getElementById("file-input");
   const convertButton = document.getElementById("convert");
   const textArea = document.getElementById("text-area");
@@ -8,16 +9,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const pauseAloudButton = document.getElementById("pause-aloud");
   const clearTextButton = document.getElementById("clear-text");
   const rearrangeTextButton = document.getElementById("rearrange-text");
-
   const voiceSelect = document.getElementById("voice-select");
   const speedControl = document.getElementById("speed-control");
   const speedValue = document.getElementById("speed-value");
 
   let speech = null;
   let voices = [];
-  let userInteracted = false;
+  let isSpeaking = false;
 
-  // Unlock Speech API on mobile browsers
+  // Ensure user interaction for iOS
+  let userInteracted = false;
   const ensureUserInteraction = () => {
     if (!userInteracted) {
       userInteracted = true;
@@ -26,10 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Show upload section when "Get Started" is clicked
-  getStartedButton.addEventListener("click", () => {
-    uploadSection.classList.remove("hidden");
-    getStartedButton.textContent = "Upload Your Book Below";
+  // Switch to main page when "Get Started" is clicked
+  pulsatingGetStartedButton.addEventListener("click", () => {
+    descriptionPage.classList.add("hidden");
+    mainPage.classList.remove("hidden");
     ensureUserInteraction();
   });
 
@@ -47,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const reader = new FileReader();
       reader.onload = () => {
         textArea.value = reader.result;
-        textArea.dispatchEvent(new Event("input")); // Trigger input event to update speech
       };
       reader.readAsText(file);
     } else if (fileExtension === "pdf") {
@@ -66,8 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   loadPage(pageNumber + 1);
                 } else {
                   textArea.value = fullText;
-                  textArea.dispatchEvent(new Event("input")); // Trigger input event to update speech
-                  alert("Text converted successfully!");
                 }
               });
             });
@@ -86,66 +84,82 @@ document.addEventListener("DOMContentLoaded", () => {
     voices = speechSynthesis.getVoices();
     voiceSelect.innerHTML = "";
     voices.forEach((voice) => {
-      const option = document.createElement("option");
-      option.value = voice.name;
-      option.textContent = voice.name;
-      voiceSelect.appendChild(option);
+      if (voice.lang.includes("en")) { // Filter only English voices
+        const option = document.createElement("option");
+        option.value = voice.name;
+        option.textContent = voice.name;
+        voiceSelect.appendChild(option);
+      }
     });
   };
 
   speechSynthesis.onvoiceschanged = loadVoices;
   loadVoices();
 
-  // Read text aloud
-  readAloudButton.addEventListener("click", () => {
-    ensureUserInteraction();
+  // Function to speak the text
+  const speakText = (text) => {
+    const selectedVoice = voices.find((voice) => voice.name === voiceSelect.value);
+    const speed = parseFloat(speedControl.value);
 
+    speech = new SpeechSynthesisUtterance(text);
+    speech.voice = selectedVoice || voices[0]; // Fallback to the first available voice
+    speech.rate = speed;
+
+    // Assign event listeners to handle iOS quirks
+    speech.onstart = () => {
+      isSpeaking = true;
+      pauseAloudButton.disabled = false;
+      pauseAloudButton.textContent = "Pause";
+    };
+
+    speech.onend = () => {
+      isSpeaking = false;
+      pauseAloudButton.disabled = true;
+      pauseAloudButton.textContent = "Pause";
+    };
+
+    // Speak the text
+    speechSynthesis.speak(speech);
+  };
+
+  // Read the text aloud with text-to-speech
+  readAloudButton.addEventListener("click", () => {
+    ensureUserInteraction(); // Ensure iOS speech works
     const text = textArea.value.trim();
     if (!text) {
       alert("Please enter or convert text to read aloud.");
       return;
     }
 
-    speechSynthesis.cancel(); // Cancel any ongoing speech
+    // Cancel any existing speech to prevent overlapping
+    speechSynthesis.cancel();
 
-    const selectedVoice = voices.find((voice) => voice.name === voiceSelect.value);
-    const speed = parseFloat(speedControl.value);
+    // Split the text into chunks and read aloud
+    const chunkSize = 1000; // Chunk size limit to avoid API issues
+    const textChunks = text.match(new RegExp(".{1," + chunkSize + "}", "g"));
 
-    speech = new SpeechSynthesisUtterance(text);
-    speech.voice = selectedVoice || voices[0];
-    speech.rate = speed;
-
-    speech.onstart = () => {
-      console.log("Speech started");
-    };
-
-    speech.onend = () => {
-      console.log("Speech ended");
-    };
-
-    speech.onerror = (event) => {
-      console.error("Speech error:", event.error);
-      alert("An error occurred while trying to read the text aloud.");
-    };
-
-    speechSynthesis.speak(speech);
-    pauseAloudButton.disabled = false;
-  });
-
-  // Pause or resume speech
-  pauseAloudButton.addEventListener("click", () => {
-    if (speechSynthesis.speaking) {
-      if (speechSynthesis.paused) {
-        speechSynthesis.resume();
-        pauseAloudButton.textContent = "Pause";
-      } else {
-        speechSynthesis.pause();
-        pauseAloudButton.textContent = "Resume";
-      }
+    if (textChunks && textChunks.length > 0) {
+      textChunks.forEach((chunk, index) => {
+        const delay = index * 1000; // Delay between chunks to avoid overlap
+        setTimeout(() => {
+          speakText(chunk);
+        }, delay);
+      });
     }
   });
 
-  // Clear text and reset controls
+  // Pause or resume text-to-speech
+  pauseAloudButton.addEventListener("click", () => {
+    if (isSpeaking) {
+      speechSynthesis.pause();
+      pauseAloudButton.textContent = "Resume";
+    } else if (speechSynthesis.paused) {
+      speechSynthesis.resume();
+      pauseAloudButton.textContent = "Pause";
+    }
+  });
+
+  // Clear text area and reset all controls
   clearTextButton.addEventListener("click", () => {
     textArea.value = "";
     speechSynthesis.cancel();
@@ -163,17 +177,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const fixText = (input) => {
       return input
-        .replace(/\s+/g, " ")
-        .replace(/([.?!])([^\s])/g, "$1 $2")
-        .replace(/(\w),(\w)/g, "$1, $2")
-        .replace(/(\w)([“”‘’])/g, "$1 $2")
-        .replace(/([“”‘’])(\w)/g, "$1 $2")
-        .replace(/(\.\.\.)(\w)/g, "$1 $2")
-        .replace(/([.?!])\s+([a-z])/g, (match, p1, p2) => `${p1} ${p2.toUpperCase()}`)
-        .replace(/^\s*[a-z]/, (match) => match.toUpperCase())
-        .replace(/\si\s/g, " I ")
-        .replace(/\s+([.?!])/g, "$1")
-        .trim();
+        .replace(/\s+/g, " ") // Normalize spaces
+        .replace(/([.?!])([^\s])/g, "$1 $2") // Add space after punctuation
+        .replace(/(\w),(\w)/g, "$1, $2") // Add space after commas
+        .replace(/(\w)([“”‘’])/g, "$1 $2") // Ensure space before quotes
+        .replace(/([“”‘’])(\w)/g, "$1 $2") // Ensure space after quotes
+        .replace(/(\.\.\.)(\w)/g, "$1 $2") // Add space after ellipses
+        .replace(/([.?!])\s+([a-z])/g, (match, p1, p2) => `${p1} ${p2.toUpperCase()}`) // Capitalize after punctuation
+        .replace(/^\s*[a-z]/, (match) => match.toUpperCase()) // Capitalize first letter
+        .replace(/\si\s/g, " I ") // Capitalize standalone "i"
+        .replace(/\s+([.?!])/g, "$1") // Remove space before punctuation
+        .trim(); // Trim trailing spaces
     };
 
     const fixedText = fixText(text);
@@ -181,15 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("Text has been perfectly edited.");
   });
 
-  // Display speed value
+  // Display speed value for text-to-speech
   speedControl.addEventListener("input", () => {
     speedValue.textContent = speedControl.value;
-  });
-
-  // Trigger input event on manual text change
-  textArea.addEventListener("input", () => {
-    pauseAloudButton.disabled = true;
-    pauseAloudButton.textContent = "Pause";
-    speechSynthesis.cancel();
   });
 });
