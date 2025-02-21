@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Convert uploaded file to text
-  convertButton.addEventListener("click", () => {
+  convertButton.addEventListener("click", async () => {
     const file = fileInput.files[0];
     if (!file) {
       alert("Please upload a file.");
@@ -54,26 +54,22 @@ document.addEventListener("DOMContentLoaded", () => {
       reader.readAsText(file);
     } else if (fileExtension === "pdf") {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const typedArray = new Uint8Array(reader.result);
-        pdfjsLib.getDocument(typedArray).promise.then((pdf) => {
+        try {
+          const pdf = await pdfjsLib.getDocument(typedArray).promise;
           let fullText = "";
-          const loadPage = (pageNumber) => {
-            pdf.getPage(pageNumber).then((page) => {
-              page.getTextContent().then((textContent) => {
-                const pageText = textContent.items.map((item) => item.str).join(" ");
-                fullText += pageText + "\n";
-
-                if (pageNumber < pdf.numPages) {
-                  loadPage(pageNumber + 1);
-                } else {
-                  textArea.value = fullText;
-                }
-              });
-            });
-          };
-          loadPage(1);
-        });
+          for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+            const page = await pdf.getPage(pageNumber);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item) => item.str).join(" ");
+            fullText += pageText + "\n";
+          }
+          textArea.value = fullText;
+        } catch (error) {
+          alert("Failed to process PDF. Please try again.");
+          console.error("PDF processing error:", error);
+        }
       };
       reader.readAsArrayBuffer(file);
     } else {
