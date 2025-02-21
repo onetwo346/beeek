@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const textArea = document.getElementById("text-area");
   const readAloudButton = document.getElementById("read-aloud");
   const pauseAloudButton = document.getElementById("pause-aloud");
+  const stopAloudButton = document.getElementById("stop-aloud");
   const clearTextButton = document.getElementById("clear-text");
   const rearrangeTextButton = document.getElementById("rearrange-text");
   const voiceSelect = document.getElementById("voice-select");
@@ -16,11 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let speech = null;
   let voices = [];
   let isSpeaking = false;
-  let currentChunkIndex = 0;
-  let textChunks = [];
   let userInteracted = false;
-  let highlightInterval = null;
-  let startPosition = 0; // Tracks the start position for reading
 
   // Ensure user interaction for iOS
   const ensureUserInteraction = () => {
@@ -109,41 +106,19 @@ document.addEventListener("DOMContentLoaded", () => {
     speech.onstart = () => {
       isSpeaking = true;
       pauseAloudButton.disabled = false;
+      stopAloudButton.disabled = false;
       pauseAloudButton.textContent = "Pause";
-      startHighlighting(text);
     };
 
     speech.onend = () => {
       isSpeaking = false;
       pauseAloudButton.disabled = true;
+      stopAloudButton.disabled = true;
       pauseAloudButton.textContent = "Pause";
-      stopHighlighting();
     };
 
     // Speak the text
     speechSynthesis.speak(speech);
-  };
-
-  // Start text highlighting
-  const startHighlighting = (text) => {
-    let currentIndex = 0;
-    highlightInterval = setInterval(() => {
-      if (currentIndex < text.length) {
-        textArea.setSelectionRange(currentIndex, currentIndex + 1);
-        textArea.scrollTop = textArea.scrollHeight; // Auto-scroll
-        currentIndex++;
-      } else {
-        stopHighlighting();
-      }
-    }, 100); // Adjust speed of highlighting
-  };
-
-  // Stop text highlighting
-  const stopHighlighting = () => {
-    if (highlightInterval) {
-      clearInterval(highlightInterval);
-      highlightInterval = null;
-    }
   };
 
   // Read the text aloud with text-to-speech
@@ -158,14 +133,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Cancel any existing speech to prevent overlapping
     speechSynthesis.cancel();
 
-    // Split the text into chunks and read aloud
-    const chunkSize = 1000; // Chunk size limit to avoid API issues
-    textChunks = text.match(new RegExp(".{1," + chunkSize + "}", "g")) || [];
-    currentChunkIndex = 0;
-
-    if (textChunks.length > 0) {
-      speakText(textChunks[currentChunkIndex]);
-    }
+    // Speak the text
+    speakText(text);
   });
 
   // Pause or resume text-to-speech
@@ -179,13 +148,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Stop text-to-speech
+  stopAloudButton.addEventListener("click", () => {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    pauseAloudButton.disabled = true;
+    stopAloudButton.disabled = true;
+    pauseAloudButton.textContent = "Pause";
+  });
+
   // Clear text area and reset all controls
   clearTextButton.addEventListener("click", () => {
     textArea.value = "";
     speechSynthesis.cancel();
     pauseAloudButton.disabled = true;
+    stopAloudButton.disabled = true;
     pauseAloudButton.textContent = "Pause";
-    stopHighlighting();
   });
 
   // Rearrange and clean up text
@@ -219,17 +197,5 @@ document.addEventListener("DOMContentLoaded", () => {
   // Display speed value for text-to-speech
   speedControl.addEventListener("input", () => {
     speedValue.textContent = speedControl.value;
-  });
-
-  // Tap-to-Read from Any Position
-  textArea.addEventListener("click", (event) => {
-    startPosition = event.target.selectionStart;
-    textArea.setSelectionRange(startPosition, startPosition);
-  });
-
-  // Start reading from the tapped position
-  readAloudButton.addEventListener("click", () => {
-    const text = textArea.value.slice(startPosition);
-    speakText(text);
   });
 });
