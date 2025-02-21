@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const textArea = document.getElementById("text-area");
   const readAloudButton = document.getElementById("read-aloud");
   const pauseAloudButton = document.getElementById("pause-aloud");
-  const stopAloudButton = document.getElementById("stop-aloud"); // Stop button
+  const stopAloudButton = document.getElementById("stop-aloud");
   const clearTextButton = document.getElementById("clear-text");
   const rearrangeTextButton = document.getElementById("rearrange-text");
   const voiceSelect = document.getElementById("voice-select");
@@ -52,6 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
       reader.onload = () => {
         textArea.value = reader.result;
       };
+      reader.onerror = () => {
+        alert("Failed to read the file. Please try again.");
+      };
       reader.readAsText(file);
     } else if (fileExtension === "pdf") {
       const reader = new FileReader();
@@ -74,7 +77,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           };
           loadPage(1);
+        }).catch(() => {
+          alert("Failed to load the PDF. Please ensure the file is valid.");
         });
+      };
+      reader.onerror = () => {
+        alert("Failed to read the file. Please try again.");
       };
       reader.readAsArrayBuffer(file);
     } else {
@@ -181,14 +189,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Clear text area and reset all controls
   clearTextButton.addEventListener("click", () => {
-    textArea.value = "";
+    textArea.value = ""; // Clear the text area
     fileInput.value = ""; // Clear the file input
     speechSynthesis.cancel(); // Stop any ongoing speech
-    pauseAloudButton.disabled = true;
-    stopAloudButton.disabled = true;
-    pauseAloudButton.textContent = "Pause";
-    isSpeaking = false; // Ensure the speaking state is reset
-    isPaused = false; // Ensure the paused state is reset
+    pauseAloudButton.disabled = true; // Disable pause button
+    stopAloudButton.disabled = true; // Disable stop button
+    pauseAloudButton.textContent = "Pause"; // Reset button text
+    isSpeaking = false; // Reset speaking state
+    isPaused = false; // Reset paused state
   });
 
   // Rearrange and clean up text
