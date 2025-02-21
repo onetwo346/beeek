@@ -60,26 +60,28 @@ document.addEventListener("DOMContentLoaded", () => {
       const reader = new FileReader();
       reader.onload = () => {
         const typedArray = new Uint8Array(reader.result);
-        pdfjsLib.getDocument(typedArray).promise.then((pdf) => {
-          let fullText = "";
-          const loadPage = (pageNumber) => {
-            pdf.getPage(pageNumber).then((page) => {
-              page.getTextContent().then((textContent) => {
-                const pageText = textContent.items.map((item) => item.str).join(" ");
-                fullText += pageText + "\n";
+        pdfjsLib.getDocument(typedArray).promise
+          .then((pdf) => {
+            let fullText = "";
+            const loadPage = (pageNumber) => {
+              pdf.getPage(pageNumber).then((page) => {
+                page.getTextContent().then((textContent) => {
+                  const pageText = textContent.items.map((item) => item.str).join(" ");
+                  fullText += pageText + "\n";
 
-                if (pageNumber < pdf.numPages) {
-                  loadPage(pageNumber + 1);
-                } else {
-                  textArea.value = fullText;
-                }
+                  if (pageNumber < pdf.numPages) {
+                    loadPage(pageNumber + 1);
+                  } else {
+                    textArea.value = fullText;
+                  }
+                });
               });
-            });
-          };
-          loadPage(1);
-        }).catch(() => {
-          alert("Failed to load the PDF. Please ensure the file is valid.");
-        });
+            };
+            loadPage(1);
+          })
+          .catch(() => {
+            alert("Failed to load the PDF. Please ensure the file is valid.");
+          });
       };
       reader.onerror = () => {
         alert("Failed to read the file. Please try again.");
