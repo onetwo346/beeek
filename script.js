@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
  let voices = [];
  let isSpeaking = false;
  let isPaused = false;
+ let speechQueue = []; // Queue to manage speech chunks
 
  // Ensure user interaction for iOS
  let userInteracted = false;
@@ -38,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
  });
 
  // Convert uploaded file to text
- convertButton.addEventListener("click", () => {
+ convertButton.addEventListener("click", async () => {
    const file = fileInput.files[0];
    if (!file) {
      alert("Please upload a file.");
@@ -47,16 +48,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
    const fileExtension = file.name.split(".").pop().toLowerCase();
 
-   if (fileExtension === "txt") {
+   try {
+     if (fileExtension === "txt") {
+       const text = await readTextFile(file);
+       textArea.value = text;
+     } else if (fileExtension === "pdf") {
+       const text = await readPDFFile(file);
+       textArea.value = text;
+     } else {
+       alert("Unsupported file type. Please upload a TXT or PDF file.");
+     }
+   } catch (error) {
+     alert("Failed to process the file. Please try again.");
+     console.error(error);
+   }
+ });
+
+ // Read text file
+ const readTextFile = (file) => {
+   return new Promise((resolve, reject) => {
      const reader = new FileReader();
-     reader.onload = () => {
-       textArea.value = reader.result;
-     };
-     reader.onerror = () => {
-       alert("Failed to read the file. Please try again.");
-     };
+     reader.onload = () => resolve(reader.result);
+     reader.onerror = () => reject("Failed to read the file.");
      reader.readAsText(file);
-   } else if (fileExtension === "pdf") {
+   });
+ };
+
+ // Read PDF file
+ const readPDFFile = (file) => {
+   return new Promise((resolve, reject) => {
      const reader = new FileReader();
      reader.onload = () => {
        const typedArray = new Uint8Array(reader.result);
@@ -72,25 +92,19 @@ document.addEventListener("DOMContentLoaded", () => {
                  if (pageNumber < pdf.numPages) {
                    loadPage(pageNumber + 1);
                  } else {
-                   textArea.value = fullText;
+                   resolve(fullText);
                  }
                });
              });
            };
            loadPage(1);
          })
-         .catch(() => {
-           alert("Failed to load the PDF. Please ensure the file is valid.");
-         });
+         .catch(() => reject("Failed to load the PDF."));
      };
-     reader.onerror = () => {
-       alert("Failed to read the file. Please try again.");
-     };
+     reader.onerror = () => reject("Failed to read the file.");
      reader.readAsArrayBuffer(file);
-   } else {
-     alert("Unsupported file type. Please upload a TXT or PDF file.");
-   }
- });
+   });
+ };
 
  // Load available voices for text-to-speech
  const loadVoices = () => {
@@ -132,6 +146,12 @@ document.addEventListener("DOMContentLoaded", () => {
      pauseAloudButton.disabled = true;
      stopAloudButton.disabled = true;
      pauseAloudButton.textContent = "Pause";
+
+     // Process the next chunk in the queue
+     if (speechQueue.length > 0) {
+       const nextChunk = speechQueue.shift();
+       speakText(nextChunk);
+     }
    };
 
    // Speak the text
@@ -147,20 +167,17 @@ document.addEventListener("DOMContentLoaded", () => {
      return;
    }
 
-   // Cancel any existing speech to prevent overlapping
+   // Cancel any existing speech and clear the queue
    speechSynthesis.cancel();
+   speechQueue = [];
 
-   // Split the text into chunks and read aloud
+   // Split the text into chunks and add to the queue
    const chunkSize = 1000; // Chunk size limit to avoid API issues
    const textChunks = text.match(new RegExp(".{1," + chunkSize + "}", "g"));
 
    if (textChunks && textChunks.length > 0) {
-     textChunks.forEach((chunk, index) => {
-       const delay = index * 1000; // Delay between chunks to avoid overlap
-       setTimeout(() => {
-         speakText(chunk);
-       }, delay);
-     });
+     speechQueue = [...textChunks]; // Add all chunks to the queue
+     speakText(speechQueue.shift()); // Start speaking the first chunk
    }
  });
 
@@ -186,14 +203,16 @@ document.addEventListener("DOMContentLoaded", () => {
      pauseAloudButton.disabled = true;
      stopAloudButton.disabled = true;
      pauseAloudButton.textContent = "Pause";
+     speechQueue = []; // Clear the speech queue
    }
  });
 
- // Clear text area and reset all controls
+ // Clear text area and reset all controls (Ultimate Stop Feature)
  clearTextButton.addEventListener("click", () => {
    textArea.value = ""; // Clear the text area
    fileInput.value = ""; // Clear the file input
    speechSynthesis.cancel(); // Stop any ongoing speech
+   speechQueue = []; // Clear the speech queue
    pauseAloudButton.disabled = true; // Disable pause button
    stopAloudButton.disabled = true; // Disable stop button
    pauseAloudButton.textContent = "Pause"; // Reset button text
