@@ -146,7 +146,7 @@ header h1 {
 }
 
 textarea {
-  width: 100%;
+  width: calc(100% - 20px); /* Adjust width to prevent overflow */
   height: 200px;
   margin: 10px 0;
   padding: 10px;
@@ -154,40 +154,21 @@ textarea {
   border-radius: 5px;
   font-size: 16px;
   resize: vertical;
+  box-sizing: border-box; /* Ensure padding doesn't affect width */
 }
 
-button {
-  background-color: #6200ea;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  margin: 5px;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #3700b3;
+.controls {
+  display: flex;
+  flex-wrap: wrap; /* Wrap buttons on smaller screens */
+  gap: 10px; /* Add spacing between buttons */
+  margin-top: 10px;
 }
 
 .voice-controls {
   display: flex;
   flex-direction: column;
   margin-top: 10px;
-}
-
-.voice-controls label {
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-
-.voice-controls select,
-.voice-controls input {
-  padding: 5px;
-  margin-top: 5px;
-  font-size: 14px;
+  gap: 10px; /* Add spacing between controls */
 }
 
 footer {
@@ -201,4 +182,10 @@ footer {
 
 .hidden {
   display: none;
+}
+
+/* Text Highlighting */
+.highlight {
+  background-color: yellow; /* Light yellow highlight */
+  transition: background-color 0.3s ease;
 }
