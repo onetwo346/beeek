@@ -165,6 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     speechSynthesis.cancel();
     pauseAloudButton.disabled = true;
     pauseAloudButton.textContent = "Pause";
+    isSpeaking = false; // Ensure the speaking state is reset
   });
 
   // Rearrange and clean up text
