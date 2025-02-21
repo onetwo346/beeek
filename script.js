@@ -16,9 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let speech = null;
   let voices = [];
   let isSpeaking = false;
+  let currentChunkIndex = 0;
+  let textChunks = [];
+  let userInteracted = false;
 
   // Ensure user interaction for iOS
-  let userInteracted = false;
   const ensureUserInteraction = () => {
     if (!userInteracted) {
       userInteracted = true;
@@ -136,15 +138,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Split the text into chunks and read aloud
     const chunkSize = 1000; // Chunk size limit to avoid API issues
-    const textChunks = text.match(new RegExp(".{1," + chunkSize + "}", "g"));
+    textChunks = text.match(new RegExp(".{1," + chunkSize + "}", "g")) || [];
+    currentChunkIndex = 0;
 
-    if (textChunks && textChunks.length > 0) {
-      textChunks.forEach((chunk, index) => {
-        const delay = index * 1000; // Delay between chunks to avoid overlap
-        setTimeout(() => {
-          speakText(chunk);
-        }, delay);
-      });
+    if (textChunks.length > 0) {
+      speakText(textChunks[currentChunkIndex]);
     }
   });
 
