@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
       userInteracted = true;
       const unlockSpeech = new SpeechSynthesisUtterance("");
       speechSynthesis.speak(unlockSpeech);
+      speechSynthesis.cancel(); // Immediately cancel the empty speech
     }
   };
 
@@ -162,7 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Clear text area and reset all controls
   clearTextButton.addEventListener("click", () => {
     textArea.value = "";
-    speechSynthesis.cancel();
+    fileInput.value = ""; // Clear the file input
+    speechSynthesis.cancel(); // Stop any ongoing speech
     pauseAloudButton.disabled = true;
     pauseAloudButton.textContent = "Pause";
     isSpeaking = false; // Ensure the speaking state is reset
