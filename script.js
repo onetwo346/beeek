@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentChunkIndex = 0;
   let textChunks = [];
   let userInteracted = false;
+  let highlightInterval = null;
 
   // Ensure user interaction for iOS
   const ensureUserInteraction = () => {
@@ -108,16 +109,40 @@ document.addEventListener("DOMContentLoaded", () => {
       isSpeaking = true;
       pauseAloudButton.disabled = false;
       pauseAloudButton.textContent = "Pause";
+      startHighlighting(text);
     };
 
     speech.onend = () => {
       isSpeaking = false;
       pauseAloudButton.disabled = true;
       pauseAloudButton.textContent = "Pause";
+      stopHighlighting();
     };
 
     // Speak the text
     speechSynthesis.speak(speech);
+  };
+
+  // Start text highlighting
+  const startHighlighting = (text) => {
+    let currentIndex = 0;
+    highlightInterval = setInterval(() => {
+      if (currentIndex < text.length) {
+        textArea.setSelectionRange(currentIndex, currentIndex + 1);
+        textArea.scrollTop = textArea.scrollHeight; // Auto-scroll
+        currentIndex++;
+      } else {
+        stopHighlighting();
+      }
+    }, 100); // Adjust speed of highlighting
+  };
+
+  // Stop text highlighting
+  const stopHighlighting = () => {
+    if (highlightInterval) {
+      clearInterval(highlightInterval);
+      highlightInterval = null;
+    }
   };
 
   // Read the text aloud with text-to-speech
@@ -159,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
     speechSynthesis.cancel();
     pauseAloudButton.disabled = true;
     pauseAloudButton.textContent = "Pause";
+    stopHighlighting();
   });
 
   // Rearrange and clean up text
@@ -192,5 +218,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Display speed value for text-to-speech
   speedControl.addEventListener("input", () => {
     speedValue.textContent = speedControl.value;
+  });
+
+  // Tap-to-Read from Any Position
+  textArea.addEventListener("click", (event) => {
+    const cursorPosition = event.target.selectionStart;
+    const text = textArea.value;
+    const textToRead = text.slice(cursorPosition);
+    speakText(textToRead);
   });
 });
