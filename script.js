@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const textArea = document.getElementById("text-area");
   const readAloudButton = document.getElementById("read-aloud");
   const pauseAloudButton = document.getElementById("pause-aloud");
-  const stopAloudButton = document.getElementById("stop-aloud"); // New stop button
+  const stopAloudButton = document.getElementById("stop-aloud"); // Stop button
   const clearTextButton = document.getElementById("clear-text");
   const rearrangeTextButton = document.getElementById("rearrange-text");
   const voiceSelect = document.getElementById("voice-select");
@@ -169,12 +169,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Stop text-to-speech completely
   stopAloudButton.addEventListener("click", () => {
-    speechSynthesis.cancel();
-    isSpeaking = false;
-    isPaused = false;
-    pauseAloudButton.disabled = true;
-    stopAloudButton.disabled = true;
-    pauseAloudButton.textContent = "Pause";
+    if (speechSynthesis.speaking || isPaused) {
+      speechSynthesis.cancel();
+      isSpeaking = false;
+      isPaused = false;
+      pauseAloudButton.disabled = true;
+      stopAloudButton.disabled = true;
+      pauseAloudButton.textContent = "Pause";
+    }
   });
 
   // Clear text area and reset all controls
