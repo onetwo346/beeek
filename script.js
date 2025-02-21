@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // DOM Elements
   const descriptionPage = document.getElementById("description-page");
   const mainPage = document.getElementById("main-page");
   const pulsatingGetStartedButton = document.getElementById("pulsating-get-started");
@@ -14,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const speedControl = document.getElementById("speed-control");
   const speedValue = document.getElementById("speed-value");
 
+  // Speech Synthesis Variables
   let speech = null;
   let voices = [];
   let isSpeaking = false;
@@ -199,6 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pauseAloudButton.textContent = "Pause"; // Reset button text
     isSpeaking = false; // Reset speaking state
     isPaused = false; // Reset paused state
+    console.log("Clear button clicked: Text and file input cleared, speech stopped."); // Debugging log
   });
 
   // Rearrange and clean up text
