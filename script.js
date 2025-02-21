@@ -88,14 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
         voiceSelect.appendChild(option);
       }
     });
-
-    // Select a more realistic voice by default (if available)
-    const realisticVoices = voices.filter((voice) =>
-      voice.name.includes("Google") || voice.name.includes("Microsoft") || voice.name.includes("Samantha")
-    );
-    if (realisticVoices.length > 0) {
-      voiceSelect.value = realisticVoices[0].name;
-    }
   };
 
   speechSynthesis.onvoiceschanged = loadVoices;
@@ -109,8 +101,6 @@ document.addEventListener("DOMContentLoaded", () => {
     speech = new SpeechSynthesisUtterance(text);
     speech.voice = selectedVoice || voices[0]; // Fallback to the first available voice
     speech.rate = speed;
-    speech.pitch = 1.2; // Adjust pitch for more natural sound
-    speech.volume = 1; // Ensure maximum volume
 
     // Assign event listeners to handle iOS quirks
     speech.onstart = () => {
@@ -169,9 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Clear text area and reset all controls
   clearTextButton.addEventListener("click", () => {
-    textArea.value = ""; // Clear the text area
-    fileInput.value = ""; // Clear the file input
-    speechSynthesis.cancel(); // Stop any ongoing speech
+    textArea.value = "";
+    speechSynthesis.cancel();
     pauseAloudButton.disabled = true;
     stopAloudButton.disabled = true;
     pauseAloudButton.textContent = "Pause";
