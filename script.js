@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const textArea = document.getElementById("text-area");
   const readAloudButton = document.getElementById("read-aloud");
   const pauseAloudButton = document.getElementById("pause-aloud");
+  const stopAloudButton = document.getElementById("stop-aloud"); // New stop button
   const clearTextButton = document.getElementById("clear-text");
   const rearrangeTextButton = document.getElementById("rearrange-text");
   const voiceSelect = document.getElementById("voice-select");
@@ -16,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let speech = null;
   let voices = [];
   let isSpeaking = false;
+  let isPaused = false;
 
   // Ensure user interaction for iOS
   let userInteracted = false;
@@ -110,12 +112,15 @@ document.addEventListener("DOMContentLoaded", () => {
     speech.onstart = () => {
       isSpeaking = true;
       pauseAloudButton.disabled = false;
+      stopAloudButton.disabled = false;
       pauseAloudButton.textContent = "Pause";
     };
 
     speech.onend = () => {
       isSpeaking = false;
+      isPaused = false;
       pauseAloudButton.disabled = true;
+      stopAloudButton.disabled = true;
       pauseAloudButton.textContent = "Pause";
     };
 
@@ -151,13 +156,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Pause or resume text-to-speech
   pauseAloudButton.addEventListener("click", () => {
-    if (isSpeaking) {
+    if (isSpeaking && !isPaused) {
       speechSynthesis.pause();
+      isPaused = true;
       pauseAloudButton.textContent = "Resume";
-    } else if (speechSynthesis.paused) {
+    } else if (isPaused) {
       speechSynthesis.resume();
+      isPaused = false;
       pauseAloudButton.textContent = "Pause";
     }
+  });
+
+  // Stop text-to-speech completely
+  stopAloudButton.addEventListener("click", () => {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    isPaused = false;
+    pauseAloudButton.disabled = true;
+    stopAloudButton.disabled = true;
+    pauseAloudButton.textContent = "Pause";
   });
 
   // Clear text area and reset all controls
@@ -166,8 +183,10 @@ document.addEventListener("DOMContentLoaded", () => {
     fileInput.value = ""; // Clear the file input
     speechSynthesis.cancel(); // Stop any ongoing speech
     pauseAloudButton.disabled = true;
+    stopAloudButton.disabled = true;
     pauseAloudButton.textContent = "Pause";
     isSpeaking = false; // Ensure the speaking state is reset
+    isPaused = false; // Ensure the paused state is reset
   });
 
   // Rearrange and clean up text
