@@ -1,255 +1,223 @@
 document.addEventListener("DOMContentLoaded", () => {
- const descriptionPage = document.getElementById("description-page");
- const mainPage = document.getElementById("main-page");
- const pulsatingGetStartedButton = document.getElementById("pulsating-get-started");
- const fileInput = document.getElementById("file-input");
- const convertButton = document.getElementById("convert");
- const textArea = document.getElementById("text-area");
- const readAloudButton = document.getElementById("read-aloud");
- const pauseAloudButton = document.getElementById("pause-aloud");
- const stopAloudButton = document.getElementById("stop-aloud");
- const clearTextButton = document.getElementById("clear-text");
- const rearrangeTextButton = document.getElementById("rearrange-text");
- const voiceSelect = document.getElementById("voice-select");
- const speedControl = document.getElementById("speed-control");
- const speedValue = document.getElementById("speed-value");
+  const descriptionPage = document.getElementById("description-page");
+  const mainPage = document.getElementById("main-page");
+  const pulsatingGetStartedButton = document.getElementById("pulsating-get-started");
+  const fileInput = document.getElementById("file-input");
+  const convertButton = document.getElementById("convert");
+  const textArea = document.getElementById("text-area");
+  const readAloudButton = document.getElementById("read-aloud");
+  const pauseAloudButton = document.getElementById("pause-aloud");
+  const stopAloudButton = document.getElementById("stop-aloud");
+  const clearTextButton = document.getElementById("clear-text");
+  const rearrangeTextButton = document.getElementById("rearrange-text");
+  const voiceSelect = document.getElementById("voice-select");
+  const speedControl = document.getElementById("speed-control");
+  const speedValue = document.getElementById("speed-value");
 
- let speech = null;
- let voices = [];
- let isSpeaking = false;
- let isPaused = false;
- let speechQueue = []; // Queue to manage speech chunks
+  let speech = null;
+  let voices = [];
+  let isSpeaking = false;
+  let isPaused = false;
+  let userInteracted = false;
+  let words = [];
+  let startWordIndex = 0;
 
- // Ensure user interaction for iOS
- let userInteracted = false;
- const ensureUserInteraction = () => {
-   if (!userInteracted) {
-     userInteracted = true;
-     const unlockSpeech = new SpeechSynthesisUtterance("");
-     speechSynthesis.speak(unlockSpeech);
-     speechSynthesis.cancel(); // Immediately cancel the empty speech
-   }
- };
+  // Ensure user interaction for iOS playback
+  const ensureUserInteraction = () => {
+    if (!userInteracted) {
+      userInteracted = true;
+      const unlockSpeech = new SpeechSynthesisUtterance("");
+      window.speechSynthesis.speak(unlockSpeech);
+      window.speechSynthesis.cancel();
+    }
+  };
 
- // Switch to main page when "Get Started" is clicked
- pulsatingGetStartedButton.addEventListener("click", () => {
-   descriptionPage.classList.add("hidden");
-   mainPage.classList.remove("hidden");
-   ensureUserInteraction();
- });
+  // Switch to main page
+  pulsatingGetStartedButton.addEventListener("click", () => {
+    descriptionPage.classList.add("hidden");
+    mainPage.classList.remove("hidden");
+    ensureUserInteraction();
+  });
 
- // Convert uploaded file to text
- convertButton.addEventListener("click", async () => {
-   const file = fileInput.files[0];
-   if (!file) {
-     alert("Please upload a file.");
-     return;
-   }
+  // File Conversion
+  convertButton.addEventListener("click", async () => {
+    const file = fileInput.files[0];
+    if (!file) {
+      alert("Please upload a file.");
+      return;
+    }
 
-   const fileExtension = file.name.split(".").pop().toLowerCase();
+    const fileExtension = file.name.split(".").pop().toLowerCase();
+    if (fileExtension === "txt") {
+      const reader = new FileReader();
+      reader.onload = () => (textArea.value = reader.result.trim());
+      reader.readAsText(file);
+    } else if (fileExtension === "pdf") {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const typedArray = new Uint8Array(reader.result);
+        try {
+          const pdf = await pdfjsLib.getDocument(typedArray).promise;
+          let fullText = "";
+          for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+            const page = await pdf.getPage(pageNumber);
+            const textContent = await page.getTextContent();
+            fullText += textContent.items.map((item) => item.str).join(" ") + "\n";
+          }
+          textArea.value = fullText.trim() || "PDF converted, but no readable text found.";
+        } catch (error) {
+          alert("Failed to process PDF.");
+          console.error("PDF error:", error);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      alert("Unsupported file type. Use TXT or PDF.");
+    }
+  });
 
-   try {
-     if (fileExtension === "txt") {
-       const text = await readTextFile(file);
-       textArea.value = text;
-     } else if (fileExtension === "pdf") {
-       const text = await readPDFFile(file);
-       textArea.value = text;
-     } else {
-       alert("Unsupported file type. Please upload a TXT or PDF file.");
-     }
-   } catch (error) {
-     alert("Failed to process the file. Please try again.");
-     console.error(error);
-   }
- });
+  // Load Voices
+  const loadVoices = () => {
+    voices = window.speechSynthesis.getVoices().filter((v) => v.lang.includes("en"));
+    voiceSelect.innerHTML = "";
+    voices.forEach((voice) => {
+      const option = document.createElement("option");
+      option.value = voice.name;
+      option.textContent = voice.name;
+      voiceSelect.appendChild(option);
+    });
+    const preferredVoice = voices.find((v) =>
+      /Google|Microsoft|Samantha/i.test(v.name)
+    );
+    if (preferredVoice) voiceSelect.value = preferredVoice.name;
+  };
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
 
- // Read text file
- const readTextFile = (file) => {
-   return new Promise((resolve, reject) => {
-     const reader = new FileReader();
-     reader.onload = () => resolve(reader.result);
-     reader.onerror = () => reject("Failed to read the file.");
-     reader.readAsText(file);
-   });
- };
+  // Speak Text Function
+  const speakText = (text, startIndex = 0) => {
+    if (!text.trim()) {
+      alert("No text to read.");
+      return;
+    }
 
- // Read PDF file
- const readPDFFile = (file) => {
-   return new Promise((resolve, reject) => {
-     const reader = new FileReader();
-     reader.onload = () => {
-       const typedArray = new Uint8Array(reader.result);
-       pdfjsLib.getDocument(typedArray).promise
-         .then((pdf) => {
-           let fullText = "";
-           const loadPage = (pageNumber) => {
-             pdf.getPage(pageNumber).then((page) => {
-               page.getTextContent().then((textContent) => {
-                 const pageText = textContent.items.map((item) => item.str).join(" ");
-                 fullText += pageText + "\n";
+    ensureUserInteraction();
+    window.speechSynthesis.cancel();
 
-                 if (pageNumber < pdf.numPages) {
-                   loadPage(pageNumber + 1);
-                 } else {
-                   resolve(fullText);
-                 }
-               });
-             });
-           };
-           loadPage(1);
-         })
-         .catch(() => reject("Failed to load the PDF."));
-     };
-     reader.onerror = () => reject("Failed to read the file.");
-     reader.readAsArrayBuffer(file);
-   });
- };
+    words = text.split(/\s+/);
+    const startText = startIndex ? words.slice(startIndex).join(" ") : text;
+    const selectedVoice = voices.find((v) => v.name === voiceSelect.value) || voices[0];
+    const speed = parseFloat(speedControl.value);
 
- // Load available voices for text-to-speech
- const loadVoices = () => {
-   voices = speechSynthesis.getVoices();
-   voiceSelect.innerHTML = "";
-   voices.forEach((voice) => {
-     if (voice.lang.includes("en")) { // Filter only English voices
-       const option = document.createElement("option");
-       option.value = voice.name;
-       option.textContent = voice.name;
-       voiceSelect.appendChild(option);
-     }
-   });
- };
+    speech = new SpeechSynthesisUtterance(startText);
+    speech.voice = selectedVoice;
+    speech.rate = speed;
+    speech.pitch = 1;
+    speech.volume = 1;
 
- speechSynthesis.onvoiceschanged = loadVoices;
- loadVoices();
+    speech.onstart = () => {
+      isSpeaking = true;
+      isPaused = false;
+      readAloudButton.disabled = true;
+      pauseAloudButton.disabled = false;
+      stopAloudButton.disabled = false;
+      pauseAloudButton.querySelector("span").textContent = "Pause";
+    };
 
- // Function to speak the text
- const speakText = (text) => {
-   const selectedVoice = voices.find((voice) => voice.name === voiceSelect.value);
-   const speed = parseFloat(speedControl.value);
+    speech.onend = () => {
+      isSpeaking = false;
+      isPaused = false;
+      updateButtons();
+    };
 
-   speech = new SpeechSynthesisUtterance(text);
-   speech.voice = selectedVoice || voices[0]; // Fallback to the first available voice
-   speech.rate = speed;
+    window.speechSynthesis.speak(speech);
+    updateButtons();
+  };
 
-   // Assign event listeners to handle iOS quirks
-   speech.onstart = () => {
-     isSpeaking = true;
-     pauseAloudButton.disabled = false;
-     stopAloudButton.disabled = false;
-     pauseAloudButton.textContent = "Pause";
-   };
+  // Get Word Index
+  const getWordIndex = (charPos, text) => {
+    return text.substring(0, charPos).split(/\s+/).length - 1;
+  };
 
-   speech.onend = () => {
-     isSpeaking = false;
-     isPaused = false;
-     pauseAloudButton.disabled = true;
-     stopAloudButton.disabled = true;
-     pauseAloudButton.textContent = "Pause";
+  // Tap to Set Cursor Position
+  textArea.addEventListener("click", () => {
+    const cursorPos = textArea.selectionStart;
+    const fullText = textArea.value.trim();
+    words = fullText.split(/\s+/);
+    startWordIndex = getWordIndex(cursorPos, fullText);
+  });
 
-     // Process the next chunk in the queue
-     if (speechQueue.length > 0) {
-       const nextChunk = speechQueue.shift();
-       speakText(nextChunk);
-     }
-   };
+  // Play
+  readAloudButton.addEventListener("click", () => {
+    const fullText = textArea.value.trim();
+    speakText(fullText, startWordIndex);
+  });
 
-   // Speak the text
-   speechSynthesis.speak(speech);
- };
+  // Pause/Resume
+  pauseAloudButton.addEventListener("click", () => {
+    if (isSpeaking && !isPaused) {
+      window.speechSynthesis.pause();
+      isPaused = true;
+      pauseAloudButton.querySelector("span").textContent = "Resume";
+    } else if (isPaused) {
+      window.speechSynthesis.resume();
+      isPaused = false;
+      pauseAloudButton.querySelector("span").textContent = "Pause";
+    }
+    updateButtons();
+  });
 
- // Read the text aloud with text-to-speech
- readAloudButton.addEventListener("click", () => {
-   ensureUserInteraction(); // Ensure iOS speech works
-   const text = textArea.value.trim();
-   if (!text) {
-     alert("Please enter or convert text to read aloud.");
-     return;
-   }
+  // Stop
+  stopAloudButton.addEventListener("click", () => {
+    window.speechSynthesis.cancel();
+    isSpeaking = false;
+    isPaused = false;
+    updateButtons();
+  });
 
-   // Cancel any existing speech and clear the queue
-   speechSynthesis.cancel();
-   speechQueue = [];
+  // Clear
+  clearTextButton.addEventListener("click", () => {
+    window.speechSynthesis.cancel();
+    textArea.value = "";
+    fileInput.value = "";
+    isSpeaking = false;
+    isPaused = false;
+    startWordIndex = 0;
+    updateButtons();
+  });
 
-   // Split the text into chunks and add to the queue
-   const chunkSize = 1000; // Chunk size limit to avoid API issues
-   const textChunks = text.match(new RegExp(".{1," + chunkSize + "}", "g"));
+  // AI Enhance
+  rearrangeTextButton.addEventListener("click", () => {
+    let text = textArea.value.trim();
+    if (!text) {
+      alert("No text to enhance.");
+      return;
+    }
+    text = text
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/(^\w|\.\s+\w)/g, (c) => c.toUpperCase())
+      .replace(/([a-z])\s+([A-Z])/g, "$1. $2");
+    textArea.value = text;
+    alert("Text enhanced!");
+  });
 
-   if (textChunks && textChunks.length > 0) {
-     speechQueue = [...textChunks]; // Add all chunks to the queue
-     speakText(speechQueue.shift()); // Start speaking the first chunk
-   }
- });
+  // Speed Control
+  speedControl.addEventListener("input", () => {
+    speedValue.textContent = speedControl.value;
+    if (isSpeaking && !isPaused) {
+      window.speechSynthesis.cancel();
+      speakText(textArea.value.trim(), startWordIndex);
+    }
+  });
 
- // Pause or resume text-to-speech
- pauseAloudButton.addEventListener("click", () => {
-   if (isSpeaking && !isPaused) {
-     speechSynthesis.pause();
-     isPaused = true;
-     pauseAloudButton.textContent = "Resume";
-   } else if (isPaused) {
-     speechSynthesis.resume();
-     isPaused = false;
-     pauseAloudButton.textContent = "Pause";
-   }
- });
+  // Update Button States
+  const updateButtons = () => {
+    readAloudButton.disabled = false; // Always enable Play
+    pauseAloudButton.disabled = !isSpeaking;
+    stopAloudButton.disabled = !isSpeaking;
+  };
 
- // Stop text-to-speech completely
- stopAloudButton.addEventListener("click", () => {
-   if (speechSynthesis.speaking || isPaused) {
-     speechSynthesis.cancel();
-     isSpeaking = false;
-     isPaused = false;
-     pauseAloudButton.disabled = true;
-     stopAloudButton.disabled = true;
-     pauseAloudButton.textContent = "Pause";
-     speechQueue = []; // Clear the speech queue
-   }
- });
-
- // Clear text area and reset all controls (Ultimate Stop Feature)
- clearTextButton.addEventListener("click", () => {
-   textArea.value = ""; // Clear the text area
-   fileInput.value = ""; // Clear the file input
-   speechSynthesis.cancel(); // Stop any ongoing speech
-   speechQueue = []; // Clear the speech queue
-   pauseAloudButton.disabled = true; // Disable pause button
-   stopAloudButton.disabled = true; // Disable stop button
-   pauseAloudButton.textContent = "Pause"; // Reset button text
-   isSpeaking = false; // Reset speaking state
-   isPaused = false; // Reset paused state
- });
-
- // Rearrange and clean up text
- rearrangeTextButton.addEventListener("click", () => {
-   const text = textArea.value.trim();
-   if (!text) {
-     alert("Please enter or convert text for rearranging.");
-     return;
-   }
-
-   const fixText = (input) => {
-     return input
-       .replace(/\s+/g, " ") // Normalize spaces
-       .replace(/([.?!])([^\s])/g, "$1 $2") // Add space after punctuation
-       .replace(/(\w),(\w)/g, "$1, $2") // Add space after commas
-       .replace(/(\w)([“”‘’])/g, "$1 $2") // Ensure space before quotes
-       .replace(/([“”‘’])(\w)/g, "$1 $2") // Ensure space after quotes
-       .replace(/(\.\.\.)(\w)/g, "$1 $2") // Add space after ellipses
-       .replace(/([.?!])\s+([a-z])/g, (match, p1, p2) => `${p1} ${p2.toUpperCase()}`) // Capitalize after punctuation
-       .replace(/^\s*[a-z]/, (match) => match.toUpperCase()) // Capitalize first letter
-       .replace(/\si\s/g, " I ") // Capitalize standalone "i"
-       .replace(/\s+([.?!])/g, "$1") // Remove space before punctuation
-       .trim(); // Trim trailing spaces
-   };
-
-   const fixedText = fixText(text);
-   textArea.value = fixedText;
-   alert("Text has been perfectly edited.");
- });
-
- // Display speed value for text-to-speech
- speedControl.addEventListener("input", () => {
-   speedValue.textContent = speedControl.value;
- });
+  // iPhone Compatibility
+  window.addEventListener("touchstart", ensureUserInteraction, { once: true });
 });
