@@ -1,5 +1,3 @@
-
-
 import cookie from 'cookie';
 
 export default function handler(req, res) {

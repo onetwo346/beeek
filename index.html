@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Beeek - Advanced Text to Speech</title>
+  <title>Beeek - Advanced Neural Text to Speech</title>
+  <meta name="description" content="Transform your documents into lifelike audio with Beeek's advanced neural text-to-speech technology. Upload TXT/PDF files or enter text directly for ultra-realistic voice synthesis.">
+  <meta name="keywords" content="text to speech, TTS, neural voice, AI voice, document reader, PDF reader, accessibility">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
+  
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DFRVN9DQL3"></script>
   <script>
@@ -42,7 +46,28 @@
         ultra-realistic voice synthesis powered by cutting-edge AI technology. 
         Fine-tune your experience with premium voice models and smart text processing.
       </p>
-      <button id="pulsating-get-started" class="neon-button">
+      
+      <!-- Feature highlights -->
+      <div class="feature-grid">
+        <div class="feature-item">
+          <i class="fas fa-brain"></i>
+          <span>Neural AI</span>
+        </div>
+        <div class="feature-item">
+          <i class="fas fa-file-pdf"></i>
+          <span>PDF Support</span>
+        </div>
+        <div class="feature-item">
+          <i class="fas fa-waveform"></i>
+          <span>Real-time Visualization</span>
+        </div>
+        <div class="feature-item">
+          <i class="fas fa-magic"></i>
+          <span>Smart Processing</span>
+        </div>
+      </div>
+      
+      <button id="pulsating-get-started" class="neon-button" aria-label="Launch Beeek Interface">
         <span class="button-text">Launch Interface</span>
         <span class="button-glow"></span>
       </button>
@@ -60,47 +85,75 @@
             <span class="status-text">System Ready</span>
           </div>
         </div>
+        <!-- Progress bar for operations -->
+        <div class="progress-bar" id="main-progress" style="display: none;">
+          <div class="progress-fill" style="width: 0%"></div>
+        </div>
       </header>
 
       <section id="upload-section">
         <div class="section-header">
           <h2><i class="fas fa-file-import"></i> Input Module</h2>
+          <div class="section-stats">
+            <span class="stat-item">
+              <i class="fas fa-clock"></i>
+              <span id="processing-time">0.0s</span>
+            </span>
+            <span class="stat-item">
+              <i class="fas fa-file-word"></i>
+              <span id="word-count">0 words</span>
+            </span>
+          </div>
         </div>
         
         <div class="file-upload-container">
           <label for="file-input" class="custom-file-upload">
-            <i class="fas fa-cloud-upload-alt"></i> Select File
+            <i class="fas fa-cloud-upload-alt"></i> 
+            <span>Select File</span>
+            <span class="file-types">TXT, PDF</span>
           </label>
-          <input type="file" id="file-input" accept=".txt, .pdf">
-          <button id="convert" class="glow-button"><i class="fas fa-sync-alt"></i> Process Document</button>
+          <input type="file" id="file-input" accept=".txt, .pdf" aria-label="Upload text or PDF file">
+          <button id="convert" class="glow-button" aria-label="Process uploaded document">
+            <i class="fas fa-sync-alt"></i> 
+            <span>Process Document</span>
+          </button>
         </div>
         
         <div class="textarea-container">
-          <textarea id="text-area" placeholder="Enter text here or upload a document..."></textarea>
+          <textarea 
+            id="text-area" 
+            placeholder="Enter text here or upload a document..."
+            aria-label="Text content for speech synthesis"
+            rows="10"
+          ></textarea>
           <div class="text-effects">
             <div class="scan-line"></div>
             <div class="typing-indicator"></div>
+          </div>
+          <div class="text-stats">
+            <span class="char-count">0 characters</span>
+            <span class="read-time">~0 min read</span>
           </div>
         </div>
         
         <div class="controls-panel">
           <div class="control-group">
-            <button id="read-aloud" class="control-button">
+            <button id="read-aloud" class="control-button" aria-label="Start text-to-speech playback">
               <i class="fas fa-play"></i> <span>Play</span>
             </button>
-            <button id="pause-aloud" class="control-button" disabled>
+            <button id="pause-aloud" class="control-button" disabled aria-label="Pause/resume playback">
               <i class="fas fa-pause"></i> <span>Pause</span>
             </button>
-            <button id="stop-aloud" class="control-button" disabled>
+            <button id="stop-aloud" class="control-button" disabled aria-label="Stop playback">
               <i class="fas fa-stop"></i> <span>Stop</span>
             </button>
           </div>
           
           <div class="control-group">
-            <button id="clear-text" class="control-button secondary">
+            <button id="clear-text" class="control-button secondary" aria-label="Clear all text">
               <i class="fas fa-trash-alt"></i> <span>Clear</span>
             </button>
-            <button id="rearrange-text" class="control-button secondary">
+            <button id="rearrange-text" class="control-button secondary" aria-label="Enhance text with AI">
               <i class="fas fa-magic"></i> <span>AI Enhance</span>
             </button>
           </div>
@@ -111,9 +164,9 @@
             <label for="voice-select">
               <i class="fas fa-robot"></i> Neural Voice Model:
             </label>
-            <select id="voice-select" class="cyber-select">
-              <option value="premium-male">Premium Male (Neural)</option>
-              <option value="premium-female">Premium Female (Neural)</option>
+            <select id="voice-select" class="cyber-select" aria-label="Select voice model">
+              <option value="premium-female">Premium Neural Female</option>
+              <option value="premium-male">Premium Neural Male</option>
             </select>
           </div>
           
@@ -122,7 +175,16 @@
               <i class="fas fa-tachometer-alt"></i> Playback Rate:
             </label>
             <div class="slider-container">
-              <input type="range" id="speed-control" min="0.5" max="2" step="0.1" value="1" class="cyber-slider">
+              <input 
+                type="range" 
+                id="speed-control" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value="1" 
+                class="cyber-slider"
+                aria-label="Adjust playback speed"
+              >
               <div class="speed-value-container">
                 <span id="speed-value">1.0</span><span class="unit">×</span>
               </div>
@@ -130,20 +192,61 @@
           </div>
         </div>
         
+        <!-- Audio Visualization -->
         <div class="visualization-container">
-          <canvas id="audio-visualizer"></canvas>
+          <div class="visualization-header">
+            <h3><i class="fas fa-waveform"></i> Audio Visualization</h3>
+            <div class="visualization-controls">
+              <button class="viz-button" id="viz-toggle" aria-label="Toggle visualization">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="viz-button" id="viz-fullscreen" aria-label="Fullscreen visualization">
+                <i class="fas fa-expand"></i>
+              </button>
+            </div>
+          </div>
+          <canvas id="audio-visualizer" aria-label="Audio waveform visualization"></canvas>
+        </div>
+
+        <!-- Keyboard Shortcuts Panel -->
+        <div class="shortcuts-panel">
+          <button class="shortcuts-toggle" id="shortcuts-toggle" aria-label="Show keyboard shortcuts">
+            <i class="fas fa-keyboard"></i> Shortcuts
+          </button>
+          <div class="shortcuts-content" id="shortcuts-content">
+            <div class="shortcut-item">
+              <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+              <span>Play/Start</span>
+            </div>
+            <div class="shortcut-item">
+              <kbd>Ctrl</kbd> + <kbd>Space</kbd>
+              <span>Pause/Resume</span>
+            </div>
+            <div class="shortcut-item">
+              <kbd>Ctrl</kbd> + <kbd>Esc</kbd>
+              <span>Stop</span>
+            </div>
+          </div>
         </div>
       </section>
 
       <footer class="cyber-footer">
         <div class="footer-content">
-          <p>
-          </p>
+          <div class="footer-left">
+            <span class="footer-brand">Beeek Neural TTS</span>
+            <span class="footer-version">Version 2.0</span>
+          </div>
+          <div class="footer-right">
+            <span class="footer-status">
+              <i class="fas fa-shield-alt"></i> Secure Processing
+            </span>
+          </div>
         </div>
       </footer>
     </div>
   </section>
 
+  <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.min.js"></script>
   <script src="script.js"></script>
